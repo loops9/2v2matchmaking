@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Registro di torneo 2v2 — One Piece Card Game</title>
+<style>
+  :root{
+    --ink:#0E1726; --panel:#16233A; --panel-soft:#1C2C47; --line:#2A3B58;
+    --parchment:#EDE4CF; --muted:#8A98B0; --red:#D6362E; --red-deep:#A32620;
+    --gold:#C9A24B; --gold-soft:#3A3220;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--ink);color:var(--parchment);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    min-height:100vh}
+  .serif{font-family:Georgia,"Times New Roman",serif}
+  .mono{font-family:"SF Mono",Consolas,Menlo,monospace}
+
+  header{background:var(--panel);border-bottom:1px solid var(--line);padding:20px 24px}
+  .wrap{max-width:900px;margin:0 auto}
+  .head-row{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:12px}
+  .eyebrow{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);margin-bottom:4px}
+  h1{font-size:28px;font-weight:400}
+  .head-meta{font-size:13px;color:var(--muted);text-align:right}
+  .head-meta b{color:var(--parchment);font-weight:600}
+
+  nav{background:var(--panel);border-bottom:1px solid var(--line);padding:0 24px}
+  nav .wrap{display:flex;gap:4px}
+  .tab{background:none;border:none;color:var(--muted);padding:12px 16px;font-size:14px;
+    font-weight:500;cursor:pointer;border-bottom:2px solid transparent}
+  .tab.active{color:var(--parchment);border-bottom-color:var(--red)}
+
+  main{max-width:900px;margin:0 auto;padding:32px 24px}
+  h2{font-size:22px;font-weight:400;letter-spacing:.02em}
+  .sub{font-size:13px;color:var(--muted);margin:6px 0 18px;line-height:1.5}
+  h3{font-size:19px;font-weight:400}
+
+  .btn{border:none;border-radius:6px;padding:10px 20px;font-size:14px;font-weight:500;
+    cursor:pointer;background:var(--red);color:var(--parchment)}
+  .btn:hover{opacity:.85}
+  .btn:disabled{background:var(--line);cursor:not-allowed;opacity:.6}
+  .btn.ghost{background:transparent;color:var(--muted);border:1px solid var(--line)}
+  .btn.small{padding:6px 12px;font-size:13px}
+
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:8px}
+  .form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
+    gap:12px;padding:16px;margin-bottom:24px}
+  input{background:var(--ink);border:1px solid var(--line);border-radius:6px;
+    color:var(--parchment);padding:10px 12px;font-size:14px;outline:none;width:100%}
+  input:focus{border-color:var(--gold)}
+  input::placeholder{color:var(--muted)}
+
+  .team-row{display:flex;align-items:center;justify-content:space-between;
+    padding:12px 16px;margin-bottom:8px}
+  .team-left{display:flex;align-items:center;gap:16px}
+  .team-num{color:var(--gold);font-size:13px;width:24px}
+  .team-name{font-weight:500}
+  .team-players{font-size:13px;color:var(--muted)}
+
+  .round{margin-bottom:32px}
+  .round-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px}
+  .prio-note{font-size:13px;color:var(--gold)}
+  .match{margin-bottom:12px;overflow:hidden}
+  .match-head{background:var(--panel-soft);padding:8px 16px;font-size:13px;
+    display:flex;justify-content:space-between}
+  .match-head .vs{color:var(--muted)}
+  .table-row{display:flex;align-items:center;gap:12px;padding:12px 16px;
+    border-top:1px solid var(--line);flex-wrap:wrap}
+  .tbl-badge{font-size:11px;padding:4px 8px;border-radius:4px;white-space:nowrap;
+    background:var(--ink);color:var(--muted);border:1px solid var(--line)}
+  .tbl-badge.prio{background:var(--gold-soft);color:var(--gold);border-color:var(--gold)}
+  .winner-btns{display:flex;gap:8px;flex:1;min-width:200px}
+  .wbtn{flex:1;background:var(--ink);border:1px solid var(--line);border-radius:6px;
+    color:var(--muted);padding:8px 12px;font-size:13px;text-align:left;cursor:pointer;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .wbtn.sel{background:var(--red);border-color:var(--red-deep);color:var(--parchment)}
+  .wbtn .tn{opacity:.6}
+  .bye-box{border:1px dashed var(--gold);border-radius:8px;background:var(--panel);
+    padding:12px 16px;font-size:13px;color:var(--gold);margin-top:12px}
+
+  .actions{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+  .hint{font-size:13px;color:var(--muted)}
+
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  thead tr{background:var(--panel-soft);color:var(--muted);text-align:left}
+  th{padding:12px 16px;font-weight:500}
+  td{padding:12px 16px;border-top:1px solid var(--line)}
+  tbody tr:nth-child(even){background:var(--panel)}
+  .r{text-align:right}
+  .pos{color:var(--muted)}
+  .pos.top{color:var(--gold)}
+  .pts{font-size:15px}
+  .table-scroll{overflow-x:auto;border:1px solid var(--line);border-radius:8px}
+  td .small-line{font-size:12px;color:var(--muted);margin-top:2px}
+
+  .footer{margin-top:48px;padding-top:24px;border-top:1px solid var(--line);
+    display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+  .danger-text{font-size:13px;color:var(--red)}
+  .empty{color:var(--muted)}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap head-row">
+    <div>
+      <div class="eyebrow">One Piece Card Game · Formato a squadre</div>
+      <h1 class="serif">Registro di torneo 2v2</h1>
+    </div>
+    <div class="head-meta" id="headMeta"></div>
+  </div>
+</header>
+
+<nav>
+  <div class="wrap">
+    <button class="tab" data-tab="teams">Squadre</button>
+    <button class="tab" data-tab="rounds">Turni</button>
+    <button class="tab" data-tab="ranking">Classifica</button>
+  </div>
+</nav>
+
+<main id="main"></main>
+
+<script>
+/* ============================================================
+   Torneo 2v2 — One Piece TCG (versione standalone, offline)
+   - Vittoria tavolo prioritario: 3 pt · non prioritario: 2 · sconfitta: 0
+   - Priorità: turni dispari → tavolo Player 1, pari → Player 2
+   - Classifica: Punti → OP% → OP2% → sorteggio
+   - Svizzero con backtracking anti-rematch, bye = 5 pt
+   - Dati salvati in localStorage (questo browser, questo computer)
+   ============================================================ */
+
+const STORAGE_KEY = "op2v2-tournament-v1";
+const BYE_POINTS = 5;
+
+let state = { teams: [], rounds: [], tab: "teams", confirmReset: false };
+
+/* ---------- persistenza ---------- */
+function load() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const d = JSON.parse(raw);
+      state.teams = d.teams || [];
+      state.rounds = d.rounds || [];
+    }
+  } catch (e) { /* nessun dato salvato */ }
+}
+function save() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ teams: state.teams, rounds: state.rounds }));
+  } catch (e) { /* storage non disponibile */ }
+}
+
+/* ---------- utility ---------- */
+const pairKey = (a, b) => (a < b ? a + "|" + b : b + "|" + a);
+const uid = () => Math.random().toString(36).slice(2, 10);
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) =>
+  ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const priorityTable = (n) => (n % 2 === 1 ? 1 : 2);
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+/* ---------- statistiche ---------- */
+function computeStats() {
+  const stats = {};
+  state.teams.forEach((t) => {
+    stats[t.id] = { points: 0, opponents: [], byes: 0, wins: 0 };
+  });
+  state.rounds.forEach((round) => {
+    const prio = priorityTable(round.number);
+    round.matches.forEach((m) => {
+      if (!stats[m.teamA] || !stats[m.teamB]) return;
+      stats[m.teamA].opponents.push(m.teamB);
+      stats[m.teamB].opponents.push(m.teamA);
+      [{ table: 1, winner: m.table1 }, { table: 2, winner: m.table2 }].forEach(({ table, winner }) => {
+        if (!winner) return;
+        const pts = table === prio ? 3 : 2;
+        const winId = winner === "A" ? m.teamA : m.teamB;
+        stats[winId].points += pts;
+        stats[winId].wins += 1;
+      });
+    });
+    if (round.bye && stats[round.bye]) {
+      stats[round.bye].points += BYE_POINTS;
+      stats[round.bye].byes += 1;
+    }
+  });
+  Object.values(stats).forEach((s) => {
+    s.op = s.opponents.length
+      ? s.opponents.reduce((sum, id) => sum + (stats[id] ? stats[id].points : 0), 0) / s.opponents.length
+      : 0;
+  });
+  Object.values(stats).forEach((s) => {
+    s.op2 = s.opponents.length
+      ? s.opponents.reduce((sum, id) => sum + (stats[id] ? stats[id].op : 0), 0) / s.opponents.length
+      : 0;
+  });
+  return stats;
+}
+
+function sortTeams(teams, stats) {
+  return [...teams].sort((a, b) => {
+    const sa = stats[a.id], sb = stats[b.id];
+    if (sb.points !== sa.points) return sb.points - sa.points;
+    if (sb.op !== sa.op) return sb.op - sa.op;
+    if (sb.op2 !== sa.op2) return sb.op2 - sa.op2;
+    return a.seed - b.seed;
+  });
+}
+
+/* ---------- abbinamento svizzero ---------- */
+function backtrackPair(pool, played) {
+  if (pool.length === 0) return [];
+  const first = pool[0], rest = pool.slice(1);
+  for (let i = 0; i < rest.length; i++) {
+    if (played.has(pairKey(first.id, rest[i].id))) continue;
+    const sub = backtrackPair(rest.filter((_, j) => j !== i), played);
+    if (sub) return [{ teamA: first.id, teamB: rest[i].id }].concat(sub);
+  }
+  return null;
+}
+
+function generateRound(stats) {
+  const played = new Set();
+  state.rounds.forEach((r) => r.matches.forEach((m) => played.add(pairKey(m.teamA, m.teamB))));
+  const byeHistory = new Set(state.rounds.map((r) => r.bye).filter(Boolean));
+
+  let pool = state.rounds.length === 0 ? shuffle(state.teams) : sortTeams(state.teams, stats);
+
+  let bye = null;
+  if (pool.length % 2 === 1) {
+    for (let i = pool.length - 1; i >= 0; i--) {
+      if (!byeHistory.has(pool[i].id)) { bye = pool[i].id; break; }
+    }
+    if (bye === null) bye = pool[pool.length - 1].id;
+    pool = pool.filter((t) => t.id !== bye);
+  }
+
+  let matches = backtrackPair(pool, played);
+  if (!matches) {
+    matches = [];
+    for (let i = 0; i < pool.length; i += 2) {
+      matches.push({ teamA: pool[i].id, teamB: pool[i + 1].id });
+    }
+  }
+  return {
+    number: state.rounds.length + 1,
+    matches: matches.map((m) => ({ teamA: m.teamA, teamB: m.teamB, table1: null, table2: null })),
+    bye,
+  };
+}
+
+/* ---------- helper di stato ---------- */
+const teamById = (id) => state.teams.find((t) => t.id === id);
+function currentRoundComplete() {
+  const cur = state.rounds[state.rounds.length - 1];
+  return !cur || cur.matches.every((m) => m.table1 && m.table2);
+}
+
+/* ---------- azioni ---------- */
+function addTeam() {
+  const name = document.getElementById("f-name").value.trim();
+  const p1 = document.getElementById("f-p1").value.trim();
+  const p2 = document.getElementById("f-p2").value.trim();
+  if (!name || !p1 || !p2) return;
+  state.teams.push({ id: uid(), name, p1, p2, seed: Math.random() });
+  save(); render();
+  const el = document.getElementById("f-name");
+  if (el) el.focus();
+}
+function removeTeam(id) {
+  if (state.rounds.length > 0) return;
+  state.teams = state.teams.filter((t) => t.id !== id);
+  save(); render();
+}
+function newRound() {
+  if (state.teams.length < 2 || !currentRoundComplete()) return;
+  state.rounds.push(generateRound(computeStats()));
+  state.tab = "rounds";
+  save(); render();
+}
+function undoLastRound() {
+  state.rounds.pop();
+  save(); render();
+}
+function setResult(ri, mi, table, winner) {
+  const m = state.rounds[ri].matches[mi];
+  m[table] = m[table] === winner ? null : winner; // secondo clic = annulla
+  save(); render();
+}
+function resetAll() {
+  state = { teams: [], rounds: [], tab: "teams", confirmReset: false };
+  try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
+  render();
+}
+
+/* ---------- render ---------- */
+function render() {
+  const stats = computeStats();
+  const ranking = sortTeams(state.teams, stats);
+  const suggested = state.teams.length > 1 ? Math.ceil(Math.log2(state.teams.length)) + 1 : 0;
+
+  document.getElementById("headMeta").innerHTML =
+    `<div>${state.teams.length} squadre · ${state.rounds.length} turni giocati</div>` +
+    (suggested ? `<div>Turni consigliati: <b>${suggested}</b></div>` : "");
+
+  document.querySelectorAll(".tab").forEach((b) =>
+    b.classList.toggle("active", b.dataset.tab === state.tab));
+
+  const main = document.getElementById("main");
+  if (state.tab === "teams") main.innerHTML = renderTeams();
+  else if (state.tab === "rounds") main.innerHTML = renderRounds(stats);
+  else main.innerHTML = renderRanking(ranking, stats);
+
+  main.innerHTML += renderFooter();
+  bindMain();
+}
+
+function renderTeams() {
+  let h = `<h2 class="serif">Registrazione squadre</h2>
+    <p class="sub">Player 1 e Player 2 determinano il tavolo prioritario: turni dispari → Player 1, turni pari → Player 2.</p>`;
+
+  if (state.rounds.length === 0) {
+    h += `<div class="card form-grid">
+      <input id="f-name" placeholder="Nome squadra">
+      <input id="f-p1" placeholder="Player 1">
+      <input id="f-p2" placeholder="Player 2">
+      <button class="btn" data-action="addTeam">Aggiungi</button>
+    </div>`;
+  } else {
+    h += `<p class="sub">Il torneo è iniziato: le squadre non sono più modificabili.</p>`;
+  }
+
+  if (state.teams.length === 0) {
+    h += `<p class="empty">Nessuna squadra registrata. Aggiungi almeno 2 squadre per iniziare il torneo.</p>`;
+  } else {
+    h += state.teams.map((t, i) => `
+      <div class="card team-row">
+        <div class="team-left">
+          <span class="mono team-num">${String(i + 1).padStart(2, "0")}</span>
+          <div>
+            <div class="team-name">${esc(t.name)}</div>
+            <div class="team-players">P1 · ${esc(t.p1)} &nbsp;—&nbsp; P2 · ${esc(t.p2)}</div>
+          </div>
+        </div>
+        ${state.rounds.length === 0
+          ? `<button class="btn ghost small" data-action="removeTeam" data-id="${t.id}">Rimuovi</button>`
+          : ""}
+      </div>`).join("");
+  }
+
+  if (state.teams.length >= 2 && state.rounds.length === 0) {
+    h += `<div style="margin-top:24px"><button class="btn" data-action="newRound">Genera il turno 1</button></div>`;
+  }
+  return h;
+}
+
+function renderRounds(stats) {
+  let h = `<h2 class="serif">Turni e risultati</h2>
+    <p class="sub">Seleziona il vincitore di ogni tavolo. Il tavolo prioritario vale 3 punti, l'altro 2. Un secondo clic annulla il risultato.</p>`;
+
+  if (state.rounds.length === 0) {
+    h += `<p class="empty">Nessun turno generato. Registra le squadre e genera il turno 1.</p>`;
+    return h;
+  }
+
+  state.rounds.forEach((round, ri) => {
+    const prio = priorityTable(round.number);
+    const isCurrent = ri === state.rounds.length - 1;
+    h += `<div class="round">
+      <div class="round-head">
+        <h3 class="serif" style="color:${isCurrent ? "var(--parchment)" : "var(--muted)"}">Turno ${round.number}</h3>
+        <span class="prio-note">Tavolo prioritario: Player ${prio}</span>
+      </div>`;
+
+    round.matches.forEach((m, mi) => {
+      const A = teamById(m.teamA), B = teamById(m.teamB);
+      if (!A || !B) return;
+      h += `<div class="card match">
+        <div class="match-head">
+          <span><b>${esc(A.name)}</b> <span class="vs">vs</span> <b>${esc(B.name)}</b></span>
+          <span class="vs">Tavolo ${mi * 2 + 1}–${mi * 2 + 2}</span>
+        </div>`;
+      [1, 2].forEach((tbl) => {
+        const key = "table" + tbl;
+        const isPrio = tbl === prio;
+        const pA = tbl === 1 ? A.p1 : A.p2;
+        const pB = tbl === 1 ? B.p1 : B.p2;
+        h += `<div class="table-row">
+          <span class="mono tbl-badge${isPrio ? " prio" : ""}">P${tbl} ${isPrio ? "· PRIORITÀ 3 pt" : "· 2 pt"}</span>
+          <div class="winner-btns">
+            <button class="wbtn${m[key] === "A" ? " sel" : ""}" data-action="setResult"
+              data-ri="${ri}" data-mi="${mi}" data-table="${key}" data-winner="A">
+              ${m[key] === "A" ? "✓ " : ""}${esc(pA)} <span class="tn">(${esc(A.name)})</span></button>
+            <button class="wbtn${m[key] === "B" ? " sel" : ""}" data-action="setResult"
+              data-ri="${ri}" data-mi="${mi}" data-table="${key}" data-winner="B">
+              ${m[key] === "B" ? "✓ " : ""}${esc(pB)} <span class="tn">(${esc(B.name)})</span></button>
+          </div>
+        </div>`;
+      });
+      h += `</div>`;
+    });
+
+    if (round.bye) {
+      const byeTeam = teamById(round.bye);
+      if (byeTeam) {
+        h += `<div class="bye-box">Bye: ${esc(byeTeam.name)} riceve ${BYE_POINTS} punti (vittoria a tavolino su entrambi i tavoli).</div>`;
+      }
+    }
+    h += `</div>`;
+  });
+
+  const complete = currentRoundComplete();
+  h += `<div class="actions">
+    <button class="btn" data-action="newRound" ${complete ? "" : "disabled"}>Genera il turno ${state.rounds.length + 1}</button>
+    ${complete ? "" : `<span class="hint">Inserisci tutti i risultati del turno corrente per proseguire.</span>`}
+    <button class="btn ghost small" data-action="undoLastRound">Annulla ultimo turno</button>
+  </div>`;
+  return h;
+}
+
+function renderRanking(ranking, stats) {
+  let h = `<h2 class="serif">Classifica</h2>
+    <p class="sub">Ordinamento: Punti → OP% (media punti degli avversari affrontati) → OP2% (media degli OP% degli avversari) → sorteggio.</p>`;
+
+  if (state.teams.length === 0) {
+    h += `<p class="empty">Nessuna squadra registrata.</p>`;
+    return h;
+  }
+
+  h += `<div class="table-scroll"><table>
+    <thead><tr>
+      <th>#</th><th>Squadra</th>
+      <th class="r">Punti</th><th class="r">Vittorie</th>
+      <th class="r">OP%</th><th class="r">OP2%</th>
+    </tr></thead><tbody>`;
+
+  ranking.forEach((t, i) => {
+    const s = stats[t.id];
+    h += `<tr>
+      <td class="mono pos${i < 3 ? " top" : ""}">${i + 1}</td>
+      <td>
+        <div class="team-name">${esc(t.name)}</div>
+        <div class="small-line">${esc(t.p1)} · ${esc(t.p2)}${s.byes > 0 ? " · bye ricevuto" : ""}</div>
+      </td>
+      <td class="r mono pts">${s.points}</td>
+      <td class="r mono" style="color:var(--muted)">${s.wins}</td>
+      <td class="r mono" style="color:var(--muted)">${s.op.toFixed(2)}</td>
+      <td class="r mono" style="color:var(--muted)">${s.op2.toFixed(2)}</td>
+    </tr>`;
+  });
+
+  h += `</tbody></table></div>`;
+  return h;
+}
+
+function renderFooter() {
+  if (!state.confirmReset) {
+    return `<div class="footer">
+      <button class="btn ghost small" data-action="askReset">Nuovo torneo (cancella tutto)</button>
+    </div>`;
+  }
+  return `<div class="footer">
+    <span class="danger-text">Cancellare squadre, turni e risultati?</span>
+    <button class="btn small" data-action="resetAll">Sì, cancella</button>
+    <button class="btn ghost small" data-action="cancelReset">Annulla</button>
+  </div>`;
+}
+
+/* ---------- eventi ---------- */
+function bindMain() {
+  document.querySelectorAll("#main [data-action]").forEach((el) => {
+    el.addEventListener("click", () => {
+      const a = el.dataset.action;
+      if (a === "addTeam") addTeam();
+      else if (a === "removeTeam") removeTeam(el.dataset.id);
+      else if (a === "newRound") newRound();
+      else if (a === "undoLastRound") undoLastRound();
+      else if (a === "setResult")
+        setResult(+el.dataset.ri, +el.dataset.mi, el.dataset.table, el.dataset.winner);
+      else if (a === "askReset") { state.confirmReset = true; render(); }
+      else if (a === "cancelReset") { state.confirmReset = false; render(); }
+      else if (a === "resetAll") resetAll();
+    });
+  });
+  ["f-name", "f-p1", "f-p2"].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener("keydown", (e) => { if (e.key === "Enter") addTeam(); });
+  });
+}
+
+document.querySelectorAll(".tab").forEach((b) =>
+  b.addEventListener("click", () => { state.tab = b.dataset.tab; render(); }));
+
+load();
+render();
+</script>
+</body>
+</html>
