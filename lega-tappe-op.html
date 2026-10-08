@@ -1,0 +1,1265 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lega a tappe — One Piece Card Game</title>
+<style>
+  /* Stessa palette del registro 2v2, così i due strumenti sembrano della stessa famiglia */
+  :root{
+    --ink:#0E1726; --panel:#16233A; --panel-soft:#1C2C47; --line:#2A3B58;
+    --parchment:#EDE4CF; --muted:#8A98B0; --red:#D6362E; --red-deep:#A32620;
+    --gold:#C9A24B; --gold-soft:#3A3220;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--ink);color:var(--parchment);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    min-height:100vh;line-height:1.4}
+  .serif{font-family:Georgia,"Times New Roman",serif}
+  .num{font-variant-numeric:tabular-nums}
+  button,input,select{font:inherit}
+  :focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+
+  header{background:var(--panel);border-bottom:1px solid var(--line);padding:20px 24px}
+  .wrap{max-width:980px;margin:0 auto}
+  .head-row{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:12px}
+  .kicker{font-size:13px;color:var(--gold);margin-bottom:4px}
+  h1{font-size:28px;font-weight:400}
+  .head-meta{font-size:13px;color:var(--muted);text-align:right}
+  .head-meta b{color:var(--parchment);font-weight:600}
+
+  nav{background:var(--panel);border-bottom:1px solid var(--line);padding:0 24px;overflow-x:auto}
+  nav .wrap{display:flex;gap:4px}
+  .tab{background:none;border:none;color:var(--muted);padding:12px 16px;font-size:14px;
+    font-weight:500;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap}
+  .tab.active{color:var(--parchment);border-bottom-color:var(--red)}
+
+  main{max-width:980px;margin:0 auto;padding:32px 24px 64px}
+  h2{font-size:23px;font-weight:400}
+  h3{font-size:19px;font-weight:400;margin-bottom:12px}
+  .sub{font-size:14px;color:var(--muted);margin:6px 0 20px;max-width:68ch}
+  .section{margin-top:36px}
+
+  .btn{border:none;border-radius:6px;padding:10px 18px;font-size:14px;font-weight:500;
+    cursor:pointer;background:var(--red);color:var(--parchment)}
+  .btn:hover{opacity:.88}
+  .btn:disabled{background:var(--line);cursor:not-allowed;opacity:.6}
+  .btn.ghost{background:transparent;color:var(--parchment);border:1px solid var(--line)}
+  .btn.small{padding:6px 12px;font-size:13px}
+  .link{background:none;border:none;color:var(--gold);cursor:pointer;font-size:14px;padding:0}
+
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:8px}
+  .pad{padding:16px}
+  .row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px}
+  label.field{display:flex;flex-direction:column;gap:6px;font-size:13px;color:var(--muted)}
+  input,select{background:var(--ink);border:1px solid var(--line);border-radius:6px;
+    color:var(--parchment);padding:9px 11px;font-size:14px;width:100%}
+  input:focus,select:focus{border-color:var(--gold);outline:none}
+  input::placeholder{color:var(--muted)}
+  input[type=checkbox]{width:auto;accent-color:var(--red)}
+  .hint{font-size:13px;color:var(--muted)}
+  .empty{color:var(--muted);padding:8px 0}
+  .actions{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:18px}
+
+  /* ---- classifica generale: l'elemento principale ---- */
+  .table-scroll{overflow-x:auto;border:1px solid var(--line);border-radius:8px}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  thead tr{background:var(--panel-soft);color:var(--muted);text-align:left}
+  th{padding:11px 12px;font-weight:500;white-space:nowrap}
+  td{padding:11px 12px;border-top:1px solid var(--line);vertical-align:middle}
+  .r{text-align:right}
+  .c{text-align:center}
+  .pos{color:var(--muted);width:36px}
+  .qualified .pos{color:var(--gold)}
+  .pname{font-weight:500}
+  .psub{font-size:12px;color:var(--muted)}
+  .total{font-size:17px;font-weight:600}
+  .gap{font-size:12px;color:var(--muted)}
+
+  .chip{display:inline-block;min-width:30px;padding:3px 6px;border-radius:4px;text-align:center;
+    font-size:13px;border:1px solid var(--line)}
+  .chip.counted{background:var(--gold-soft);border-color:var(--gold);color:var(--gold);font-weight:600}
+  .chip.dropped{color:var(--muted);text-decoration:line-through;text-decoration-color:var(--red)}
+  .chip.absent{border-style:dashed;color:var(--line)}
+
+  tr.cutline td{border-top:2px solid var(--red)}
+  .cut-label td{padding:4px 12px;font-size:12px;color:var(--red);background:var(--ink);border-top:none}
+
+  .legend{display:flex;gap:16px;flex-wrap:wrap;font-size:13px;color:var(--muted);margin-top:12px}
+  .legend span{display:flex;gap:6px;align-items:center}
+
+  /* ---- tappe ---- */
+  .stage-row{display:flex;justify-content:space-between;align-items:center;gap:12px;
+    padding:14px 16px;margin-bottom:8px;cursor:pointer;width:100%;text-align:left;color:inherit}
+  .stage-row:hover{border-color:var(--gold)}
+  .badge{font-size:12px;padding:3px 8px;border-radius:4px;border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+  .badge.open{color:var(--gold);border-color:var(--gold)}
+  .badge.closed{color:var(--parchment)}
+
+  .check-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:6px;margin-top:12px}
+  .check-list label{display:flex;gap:8px;align-items:center;padding:7px 10px;border:1px solid var(--line);
+    border-radius:6px;cursor:pointer;font-size:14px}
+  .check-list label.on{border-color:var(--gold);background:var(--gold-soft)}
+
+  .round{margin-bottom:28px}
+  .round-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px}
+  .match{display:flex;gap:8px;align-items:center;padding:10px 12px;margin-bottom:8px;flex-wrap:wrap}
+  .tblno{font-size:12px;color:var(--muted);width:56px}
+  .wbtn{flex:1;min-width:140px;background:var(--ink);border:1px solid var(--line);border-radius:6px;
+    color:var(--muted);padding:8px 12px;font-size:14px;text-align:left;cursor:pointer;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .wbtn.sel{background:var(--red);border-color:var(--red-deep);color:var(--parchment)}
+  .dbtn{background:var(--ink);border:1px solid var(--line);border-radius:6px;color:var(--muted);
+    padding:8px 10px;font-size:13px;cursor:pointer}
+  .dbtn.sel{background:var(--gold-soft);border-color:var(--gold);color:var(--gold)}
+  .bye-box{border:1px dashed var(--gold);border-radius:8px;padding:10px 14px;font-size:13px;color:var(--gold)}
+
+  .timer-box{border:1px solid var(--line);border-radius:8px;background:var(--panel);
+    padding:14px 18px;margin-bottom:16px;display:flex;align-items:center;
+    justify-content:space-between;gap:16px;flex-wrap:wrap}
+  .timer-display{font-size:40px;color:var(--gold)}
+  .timer-box.extra .timer-display{color:var(--red)}
+  .timer-box.done{border-color:var(--red)}
+  .timer-box.done .timer-display{color:var(--red);animation:blink 1s step-start infinite}
+  .timer-label{font-size:13px;color:var(--muted);margin-left:12px}
+  @keyframes blink{50%{opacity:.25}}
+  @media (prefers-reduced-motion: reduce){.timer-box.done .timer-display{animation:none}}
+
+  .manual-row{display:grid;grid-template-columns:1fr 110px 110px;gap:10px;align-items:center;
+    padding:8px 12px;border-top:1px solid var(--line)}
+  .manual-row:first-child{border-top:none}
+
+  /* ---- finale: tabellone a eliminazione diretta ---- */
+  .bracket{display:flex;gap:18px;overflow-x:auto;padding-bottom:8px;align-items:stretch}
+  .bcol{display:flex;flex-direction:column;justify-content:space-around;gap:14px;min-width:250px;flex:1}
+  .bcol h3{font-size:16px;color:var(--muted);margin-bottom:0}
+  .bmatch{padding:10px 12px}
+  .bmatch.live{border-color:var(--gold)}
+  .bplayer{display:flex;justify-content:space-between;gap:8px;padding:5px 0;align-items:baseline}
+  .bplayer .seed{color:var(--muted);font-size:12px;width:22px;display:inline-block}
+  .bplayer.win{color:var(--gold);font-weight:600}
+  .bplayer.lose{color:var(--muted)}
+  .bplayer.tbd{color:var(--line)}
+  .bscore{font-size:16px}
+  .bopts{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;padding-top:8px;border-top:1px solid var(--line)}
+  .bopts .dbtn{font-size:12px;padding:5px 8px}
+  .champion{border:1px solid var(--gold);background:var(--gold-soft);border-radius:8px;padding:18px 20px;margin-bottom:24px}
+  .champion .serif{font-size:26px;color:var(--gold)}
+
+  .footer{margin-top:48px;padding-top:20px;border-top:1px solid var(--line);
+    display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+  .danger-text{font-size:13px;color:var(--red)}
+  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--panel-soft);
+    border:1px solid var(--gold);color:var(--parchment);padding:10px 16px;border-radius:6px;font-size:14px}
+  @media (max-width:600px){
+    main{padding:24px 14px 56px}
+    .manual-row{grid-template-columns:1fr 80px 80px}
+    .hide-sm{display:none}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap head-row">
+    <div>
+      <div class="kicker">One Piece Card Game, lega a tappe</div>
+      <h1 class="serif" id="leagueTitle">Lega</h1>
+    </div>
+    <div class="head-meta" id="headMeta"></div>
+  </div>
+</header>
+
+<nav>
+  <div class="wrap">
+    <button class="tab" data-tab="overview">Classifica generale</button>
+    <button class="tab" data-tab="stages">Tappe</button>
+    <button class="tab" data-tab="final">Finale</button>
+    <button class="tab" data-tab="players">Giocatori</button>
+    <button class="tab" data-tab="rules">Regolamento</button>
+  </div>
+</nav>
+
+<main id="main"></main>
+<input type="file" id="importFile" accept="application/json" hidden>
+
+<script>
+/* ============================================================
+   Lega a tappe — One Piece TCG (prototipo, file unico, offline)
+
+   Concetti:
+   - Giocatori: anagrafica unica della lega. Ogni tappa sceglie i giocatori
+     da qui, così lo stesso giocatore non compare con nick diversi.
+   - Tappa: un torneo 1v1 a turni svizzeri (stesso motore del 2v2),
+     oppure "risultati manuali" se la tappa è stata gestita altrove
+     (es. Bandai TCG+) e vuoi solo riportare i punti.
+   - Punti lega di una tappa: i punti fatti nella tappa, oppure una
+     tabella per piazzamento (configurabile).
+   - Classifica generale: somma dei migliori N risultati + punti presenza.
+     Contano solo le tappe chiuse.
+   - Dati salvati in localStorage (questo browser). Usa Esporta per un backup.
+   ============================================================ */
+
+const STORAGE_KEY = "op-lega-tappe-v1";
+
+/* Regole di default: quelle della lega a 6 tappe (migliori 4 + 1 punto a presenza, top 8 in finale) */
+function defaultRules() {
+  return {
+    name: "Lega One Piece",
+    stagesPlanned: 6,     // tappe previste
+    bestN: 4,             // quante tappe contano (0 = tutte)
+    presencePoints: 1,    // punti fissi per ogni tappa giocata
+    scoring: "points",    // "points" = punti di tappa · "placement" = tabella piazzamenti
+    placementTable: "10,8,6,5,4,3,2,1",
+    finalists: 8,         // quanti vanno in finale
+    winPts: 3, byePts: 3,   // nel One Piece TCG il pareggio non esiste: ogni partita ha un vincitore
+    roundMinutes: 30, extraMinutes: 5,
+    bestOf: 3,              // partite per incontro della finale (1, 3 o 5)
+    finalRoundMinutes: 50,  // durata di un turno della finale
+    thirdPlace: true,       // finalina per il 3° posto tra i perdenti delle semifinali
+  };
+}
+
+let state = {
+  rules: defaultRules(),
+  players: [],   // {id, nick, name}
+  stages: [],    // vedi newStage()
+  final: null,   // tabellone della finale, vedi createFinal()
+};
+/* Stato dell'interfaccia: non viene salvato */
+let ui = { tab: "overview", stageId: null, confirmReset: false, confirmFinalDelete: false, mergeFrom: "", mergeInto: "", toast: null };
+
+/* Timer del turno (uno solo, legato alla tappa e al turno in corso) */
+const IDLE_TIMER = () => ({ phase: "idle", paused: false, endAt: null, pausedRemaining: null, key: null, round: null, mainS: 0, extraS: 0 });
+let timer = IDLE_TIMER();
+
+/* ---------- persistenza ---------- */
+function load() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    const d = JSON.parse(raw);
+    state.rules = Object.assign(defaultRules(), d.rules || {});
+    state.players = d.players || [];
+    state.stages = d.stages || [];
+    state.final = d.final || null;
+    delete state.rules.drawPts; delete state.rules.allowDraws;
+    // dati salvati con una versione precedente: un eventuale pareggio torna "da inserire"
+    state.stages.forEach((s) => s.rounds.forEach((r) => r.matches.forEach((m) => { if (m.result === "D") m.result = null; })));
+    if (d.timer && d.timer.key !== undefined) timer = d.timer;
+    realignTimer();
+  } catch (e) { /* nessun dato o dati illeggibili: si parte da zero */ }
+}
+function save() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ rules: state.rules, players: state.players, stages: state.stages, final: state.final, timer }));
+  } catch (e) { /* storage non disponibile */ }
+}
+
+/* ---------- utility ---------- */
+const uid = () => Math.random().toString(36).slice(2, 10);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) =>
+  ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const pairKey = (a, b) => (a < b ? a + "|" + b : b + "|" + a);
+const playerById = (id) => state.players.find((p) => p.id === id);
+const stageById = (id) => state.stages.find((s) => s.id === id);
+const nickOf = (id) => (playerById(id) ? playerById(id).nick : "(giocatore rimosso)");
+const today = () => new Date().toISOString().slice(0, 10);
+const fmtDate = (iso) => {
+  if (!iso) return "senza data";
+  const [y, m, d] = iso.split("-");
+  return `${d}/${m}/${y}`;
+};
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+function toast(msg) {
+  ui.toast = msg; render();
+  setTimeout(() => { ui.toast = null; render(); }, 2200);
+}
+
+/* ============================================================
+   TAPPA: statistiche e classifica
+   ============================================================ */
+function newStage() {
+  return {
+    id: uid(),
+    number: state.stages.length + 1,
+    date: today(),
+    mode: "swiss",      // "swiss" o "manual"
+    status: "open",     // "open" o "closed"
+    playerIds: [],
+    seeds: {},          // spareggio finale casuale ma stabile
+    rounds: [],         // {number, matches:[{a,b,result:null|"A"|"B"}], bye}
+    manual: {},         // pid -> {points, position}
+    result: null,       // classifica congelata alla chiusura: [{pid, points, position}]
+  };
+}
+
+/* Statistiche di una tappa a turni svizzeri */
+function swissStats(stage) {
+  const r = state.rules;
+  const st = {};
+  stage.playerIds.forEach((pid) => { st[pid] = { points: 0, wins: 0, losses: 0, byes: 0, opponents: [] }; });
+  stage.rounds.forEach((round) => {
+    round.matches.forEach((m) => {
+      if (!st[m.a] || !st[m.b]) return;
+      st[m.a].opponents.push(m.b);
+      st[m.b].opponents.push(m.a);
+      if (m.result === "A") { st[m.a].points += r.winPts; st[m.a].wins++; st[m.b].losses++; }
+      else if (m.result === "B") { st[m.b].points += r.winPts; st[m.b].wins++; st[m.a].losses++; }
+    });
+    if (round.bye && st[round.bye]) { st[round.bye].points += r.byePts; st[round.bye].byes++; }
+  });
+  // OP% = media dei punti degli avversari · OP2% = media degli OP% degli avversari (come nel 2v2)
+  Object.values(st).forEach((s) => {
+    s.op = s.opponents.length ? s.opponents.reduce((t, id) => t + (st[id] ? st[id].points : 0), 0) / s.opponents.length : 0;
+  });
+  Object.values(st).forEach((s) => {
+    s.op2 = s.opponents.length ? s.opponents.reduce((t, id) => t + (st[id] ? st[id].op : 0), 0) / s.opponents.length : 0;
+  });
+  return st;
+}
+
+function sortSwiss(stage, st) {
+  return [...stage.playerIds].sort((a, b) => {
+    const sa = st[a], sb = st[b];
+    if (sb.points !== sa.points) return sb.points - sa.points;
+    if (sb.op !== sa.op) return sb.op - sa.op;
+    if (sb.op2 !== sa.op2) return sb.op2 - sa.op2;
+    return (stage.seeds[a] || 0) - (stage.seeds[b] || 0);
+  });
+}
+
+/* Classifica della tappa nel formato comune: [{pid, points, position}] */
+function stageStanding(stage) {
+  if (stage.mode === "manual") {
+    const rows = stage.playerIds.map((pid) => ({
+      pid,
+      points: Number((stage.manual[pid] || {}).points) || 0,
+      fixedPos: Number((stage.manual[pid] || {}).position) || null,
+    }));
+    // Se hai indicato le posizioni le uso, altrimenti ordino per punti
+    rows.sort((x, y) => {
+      if (x.fixedPos && y.fixedPos) return x.fixedPos - y.fixedPos;
+      if (x.fixedPos) return -1;
+      if (y.fixedPos) return 1;
+      return y.points - x.points;
+    });
+    return rows.map((x, i) => ({ pid: x.pid, points: x.points, position: x.fixedPos || i + 1 }));
+  }
+  const st = swissStats(stage);
+  return sortSwiss(stage, st).map((pid, i) => ({ pid, points: st[pid].points, position: i + 1 }));
+}
+
+/* Punti lega guadagnati in una tappa, secondo il regolamento */
+function leaguePoints(entry) {
+  const r = state.rules;
+  if (r.scoring === "placement") {
+    const table = String(r.placementTable).split(",").map((x) => Number(x.trim()) || 0);
+    return table[entry.position - 1] || 0;
+  }
+  return entry.points;
+}
+
+/* ============================================================
+   CLASSIFICA GENERALE
+   ============================================================ */
+function overall() {
+  const r = state.rules;
+  const closed = state.stages.filter((s) => s.status === "closed" && s.result).sort((a, b) => a.number - b.number);
+  const rows = state.players.map((p) => {
+    // risultati del giocatore, tappa per tappa
+    const results = [];
+    closed.forEach((s) => {
+      const e = s.result.find((x) => x.pid === p.id);
+      if (e) results.push({ stageId: s.id, number: s.number, lp: leaguePoints(e), position: e.position });
+    });
+    // scelgo i migliori N (a parità di punti tengo la tappa più vecchia)
+    const ordered = [...results].sort((a, b) => b.lp - a.lp || a.number - b.number);
+    const n = r.bestN > 0 ? r.bestN : ordered.length;
+    const counted = new Set(ordered.slice(0, n).map((x) => x.stageId));
+    const countedSum = ordered.slice(0, n).reduce((t, x) => t + x.lp, 0);
+    const presence = results.length * (Number(r.presencePoints) || 0);
+    const best = ordered.length ? ordered[0].lp : 0;
+    return { player: p, results, counted, countedSum, presence, total: countedSum + presence, played: results.length, best };
+  }).filter((x) => x.played > 0);
+
+  // Spareggio della generale: totale → miglior risultato singolo → più presenze → nick
+  rows.sort((a, b) => b.total - a.total || b.best - a.best || b.played - a.played ||
+    a.player.nick.localeCompare(b.player.nick));
+  return { rows, closed };
+}
+
+/* ============================================================
+   ABBINAMENTO SVIZZERO 1v1 (stessa logica del 2v2)
+   ============================================================ */
+function backtrackPair(pool, played) {
+  if (pool.length === 0) return [];
+  const first = pool[0], rest = pool.slice(1);
+  for (let i = 0; i < rest.length; i++) {
+    if (played.has(pairKey(first, rest[i]))) continue;
+    const sub = backtrackPair(rest.filter((_, j) => j !== i), played);
+    if (sub) return [{ a: first, b: rest[i] }].concat(sub);
+  }
+  return null;
+}
+
+function generateRound(stage) {
+  const played = new Set();
+  stage.rounds.forEach((r) => r.matches.forEach((m) => played.add(pairKey(m.a, m.b))));
+  const byeHistory = new Set(stage.rounds.map((r) => r.bye).filter(Boolean));
+
+  let pool = stage.rounds.length === 0 ? shuffle(stage.playerIds) : sortSwiss(stage, swissStats(stage));
+
+  // Numero dispari: il bye va al peggio classificato che non l'ha ancora avuto
+  let bye = null;
+  if (pool.length % 2 === 1) {
+    for (let i = pool.length - 1; i >= 0; i--) {
+      if (!byeHistory.has(pool[i])) { bye = pool[i]; break; }
+    }
+    if (bye === null) bye = pool[pool.length - 1];
+    pool = pool.filter((p) => p !== bye);
+  }
+
+  let matches = backtrackPair(pool, played);
+  if (!matches) { // impossibile evitare tutte le rivincite: accoppio in ordine
+    matches = [];
+    for (let i = 0; i < pool.length; i += 2) matches.push({ a: pool[i], b: pool[i + 1] });
+  }
+  return { number: stage.rounds.length + 1, matches: matches.map((m) => ({ a: m.a, b: m.b, result: null })), bye };
+}
+
+const roundComplete = (stage) => {
+  const cur = stage.rounds[stage.rounds.length - 1];
+  return !cur || cur.matches.every((m) => m.result);
+};
+const suggestedRounds = (n) => (n > 1 ? Math.ceil(Math.log2(n)) : 0);
+
+/* ============================================================
+   AZIONI
+   ============================================================ */
+function addPlayer(nick, name) {
+  nick = nick.trim(); name = (name || "").trim();
+  if (!nick) return null;
+  const dup = state.players.find((p) => p.nick.toLowerCase() === nick.toLowerCase());
+  if (dup) { toast(`"${dup.nick}" esiste già nell'anagrafica`); return dup; }
+  const p = { id: uid(), nick, name };
+  state.players.push(p);
+  return p;
+}
+
+function playerStageCount(pid) {
+  return state.stages.filter((s) => s.playerIds.includes(pid)).length;
+}
+
+/* Unisce due profili: tutto ciò che è di "from" passa a "into", poi "from" sparisce */
+function mergePlayers(from, into) {
+  if (!from || !into || from === into) return;
+  const swap = (id) => (id === from ? into : id);
+  state.stages.forEach((s) => {
+    const alreadyIn = s.playerIds.includes(into);
+    s.playerIds = [...new Set(s.playerIds.map(swap))];
+    s.rounds.forEach((r) => {
+      r.matches.forEach((m) => { m.a = swap(m.a); m.b = swap(m.b); });
+      r.bye = r.bye ? swap(r.bye) : r.bye;
+    });
+    if (s.manual[from]) { if (!alreadyIn) s.manual[into] = s.manual[from]; delete s.manual[from]; }
+    if (s.seeds[from] !== undefined) { if (!alreadyIn) s.seeds[into] = s.seeds[from]; delete s.seeds[from]; }
+    if (s.result) {
+      // se entrambi i profili erano nella stessa tappa tengo il risultato di "into"
+      s.result = s.result.filter((e) => !(e.pid === from && alreadyIn)).map((e) => ({ ...e, pid: swap(e.pid) }));
+    }
+  });
+  if (state.final) {
+    state.final.seeds = state.final.seeds.map(swap);
+    [...state.final.rounds, state.final.third ? [state.final.third] : []].forEach((rd) => rd.forEach((m) => {
+      m.a = m.a && swap(m.a); m.b = m.b && swap(m.b); m.winner = m.winner && swap(m.winner);
+    }));
+  }
+  const fromNick = nickOf(from), intoNick = nickOf(into);
+  state.players = state.players.filter((p) => p.id !== from);
+  ui.mergeFrom = ""; ui.mergeInto = "";
+  save();
+  toast(`"${fromNick}" unito a "${intoNick}"`);
+}
+
+function closeStage(stage) {
+  stage.result = stageStanding(stage).map((e) => ({ pid: e.pid, points: e.points, position: e.position }));
+  stage.status = "closed";
+  if (timer.key === stage.id) timerReset(false);
+  save();
+}
+function reopenStage(stage) {
+  stage.status = "open";
+  stage.result = null;
+  save();
+}
+
+/* Lega di prova: giocatori inventati e 3 tappe simulate, utile per una demo al negoziante */
+function loadDemo() {
+  const nicks = ["Bartolomeo", "Nakama88", "LuffyMain", "RedHair", "Shirohige", "NamiSwan", "Kaido_IT",
+    "Zorojuro", "Sanji_bv", "Robin", "Franky", "Brook", "Jinbe", "Yamato", "Kidd", "Law"];
+  state = { rules: defaultRules(), players: [], stages: [], final: null };
+  state.rules.name = "Lega di prova";
+  nicks.forEach((n) => addPlayer(n, ""));
+  for (let k = 0; k < 3; k++) {
+    const s = newStage();
+    const d = new Date(); d.setDate(d.getDate() - (3 - k) * 7);
+    s.date = d.toISOString().slice(0, 10);
+    // non tutti si presentano a tutte le tappe
+    s.playerIds = shuffle(state.players.map((p) => p.id)).slice(0, 11 + k);
+    s.playerIds.forEach((pid) => { s.seeds[pid] = Math.random(); });
+    state.stages.push(s);
+    for (let t = 0; t < 3; t++) {
+      const round = generateRound(s);
+      round.matches.forEach((m) => { m.result = Math.random() < 0.5 ? "A" : "B"; });
+      s.rounds.push(round);
+    }
+    closeStage(s);
+  }
+  ui = { ...ui, tab: "overview", stageId: null };
+  save();
+}
+
+function resetAll() {
+  state = { rules: defaultRules(), players: [], stages: [], final: null };
+  timer = IDLE_TIMER();
+  ui = { tab: "overview", stageId: null, confirmReset: false, mergeFrom: "", mergeInto: "", toast: null };
+  try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
+}
+
+function exportData() {
+  const blob = new Blob([JSON.stringify({ rules: state.rules, players: state.players, stages: state.stages, final: state.final }, null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `lega-${today()}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+function importData(file) {
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const d = JSON.parse(reader.result);
+      if (!Array.isArray(d.players) || !Array.isArray(d.stages)) throw new Error("formato");
+      state = { rules: Object.assign(defaultRules(), d.rules || {}), players: d.players, stages: d.stages, final: d.final || null };
+      save(); toast("Backup importato");
+    } catch (e) { toast("Il file non è un backup valido della lega"); }
+  };
+  reader.readAsText(file);
+}
+
+/* ============================================================
+   FINALE: tabellone a eliminazione diretta (top cut)
+   - I primi K della generale, con il tabellone classico:
+     con 8 giocatori 1-8 e 4-5 stanno nella stessa metà, 2-7 e 3-6 nell'altra,
+     così 1 e 2 si possono incontrare solo all'ultimo atto.
+   - Se K non è una potenza di 2 (es. 6) i primi classificati hanno il bye.
+   - Ogni incontro è al meglio di N partite (default 3).
+   ============================================================ */
+
+/* Ordine dei seed nel tabellone: per 8 → [1,8,4,5,2,7,3,6] */
+function seedOrder(size) {
+  let o = [1];
+  while (o.length < size) {
+    const m = o.length * 2 + 1;
+    o = o.flatMap((x) => [x, m - x]);
+  }
+  return o;
+}
+const winsNeeded = () => Math.ceil((Number(state.rules.bestOf) || 3) / 2);
+
+function createFinal() {
+  const { rows } = overall();
+  const k = Math.min(Number(state.rules.finalists) || 8, rows.length);
+  if (k < 2) return;
+  const seeds = rows.slice(0, k).map((x) => x.player.id); // seeds[0] = primo in generale
+  let size = 1; while (size < k) size *= 2;
+  const order = seedOrder(size);
+  const first = [];
+  for (let i = 0; i < size; i += 2) {
+    first.push({ a: seeds[order[i] - 1] || null, b: seeds[order[i + 1] - 1] || null, ga: 0, gb: 0, winner: null });
+  }
+  const rounds = [first];
+  while (rounds[rounds.length - 1].length > 1) {
+    const prev = rounds[rounds.length - 1];
+    rounds.push(Array.from({ length: prev.length / 2 }, () => ({ a: null, b: null, ga: 0, gb: 0, winner: null })));
+  }
+  // la finalina esiste solo se ci sono le semifinali (almeno 2 turni)
+  const third = state.rules.thirdPlace && rounds.length >= 2 ? { a: null, b: null, ga: 0, gb: 0, winner: null } : null;
+  state.final = { seeds, date: today(), bestOf: Number(state.rules.bestOf) || 3, rounds, third };
+  refreshBracket();
+  save();
+}
+
+/* Ricalcola vincitori e passaggi di turno. Se cambia chi gioca un incontro, il suo punteggio si azzera. */
+function refreshBracket() {
+  const f = state.final;
+  const need = Math.ceil(f.bestOf / 2);
+  f.rounds.forEach((round, ri) => {
+    round.forEach((m, mi) => {
+      if (ri > 0) {
+        const pa = f.rounds[ri - 1][mi * 2].winner, pb = f.rounds[ri - 1][mi * 2 + 1].winner;
+        if (m.a !== pa || m.b !== pb) { m.a = pa; m.b = pb; m.ga = 0; m.gb = 0; }
+      }
+      if (ri === 0 && m.a && !m.b) m.winner = m.a;          // bye al primo turno
+      else if (ri === 0 && !m.a && m.b) m.winner = m.b;
+      else if (m.a && m.b && m.ga >= need) m.winner = m.a;
+      else if (m.a && m.b && m.gb >= need) m.winner = m.b;
+      else m.winner = null;
+    });
+  });
+  if (f.third) {
+    const semis = f.rounds[f.rounds.length - 2];
+    const loser = (m) => (m.winner && m.a && m.b ? (m.winner === m.a ? m.b : m.a) : null);
+    const t = f.third, pa = loser(semis[0]), pb = loser(semis[1]);
+    if (t.a !== pa || t.b !== pb) { t.a = pa; t.b = pb; t.ga = 0; t.gb = 0; }
+    t.winner = t.a && t.b ? (t.ga >= need ? t.a : t.gb >= need ? t.b : null) : null;
+  }
+}
+/* Incontro della finale dato l'indirizzo dei bottoni: ri = numero turno oppure "third" */
+const finalMatch = (ri, mi) => (ri === "third" ? state.final.third : state.final.rounds[+ri][+mi]);
+
+const seedOf = (pid) => (state.final ? state.final.seeds.indexOf(pid) + 1 : 0);
+function roundName(ri, total) {
+  const left = total - ri;
+  if (left === 1) return "Finale";
+  if (left === 2) return "Semifinali";
+  if (left === 3) return "Quarti di finale";
+  return `Ottavi e oltre (turno ${ri + 1})`;
+}
+
+/* ============================================================
+   TIMER DEL TURNO (dal 2v2, con durate configurabili)
+   ============================================================ */
+/* Il timer è unico: "key" dice a cosa appartiene (id della tappa oppure "final"),
+   "round" a quale turno. Le durate vengono fissate quando lo avvii. */
+function realignTimer() {
+  // se la pagina è stata chiusa col timer attivo, riallinea la fase
+  if (timer.paused || (timer.phase !== "main" && timer.phase !== "extra")) return;
+  const now = Date.now();
+  if (timer.phase === "main" && now >= timer.endAt) {
+    const extraEnd = timer.endAt + timer.extraS * 1000;
+    if (now >= extraEnd) timer.phase = "done"; else { timer.phase = "extra"; timer.endAt = extraEnd; }
+  } else if (timer.phase === "extra" && now >= timer.endAt) timer.phase = "done";
+}
+function timerStart(key, round, minutes, extraMinutes) {
+  const mainS = (Number(minutes) || 30) * 60, extraS = (Number(extraMinutes) || 0) * 60;
+  timer = { phase: "main", paused: false, endAt: Date.now() + mainS * 1000, pausedRemaining: null, key, round, mainS, extraS };
+  save();
+}
+function timerPause() {
+  if (timer.paused || (timer.phase !== "main" && timer.phase !== "extra")) return;
+  timer.paused = true;
+  timer.pausedRemaining = Math.max(0, Math.round((timer.endAt - Date.now()) / 1000));
+  save();
+}
+function timerResume() {
+  if (!timer.paused) return;
+  timer.paused = false;
+  timer.endAt = Date.now() + timer.pausedRemaining * 1000;
+  timer.pausedRemaining = null;
+  save();
+}
+function timerReset(doSave = true) {
+  timer = IDLE_TIMER();
+  if (doSave) save();
+}
+function timerRemaining() {
+  if (timer.paused) return timer.pausedRemaining;
+  if (timer.phase === "main" || timer.phase === "extra") return Math.max(0, Math.round((timer.endAt - Date.now()) / 1000));
+  return 0;
+}
+const fmtTime = (s) => String(Math.floor(s / 60)).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0");
+
+function beep(times) {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    for (let i = 0; i < times; i++) {
+      const osc = ctx.createOscillator(), gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.frequency.value = 880;
+      const t = ctx.currentTime + i * 0.45;
+      gain.gain.setValueAtTime(0.4, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
+      osc.start(t); osc.stop(t + 0.4);
+    }
+  } catch (e) { /* audio non disponibile */ }
+}
+function timerTick() {
+  if (timer.paused || (timer.phase !== "main" && timer.phase !== "extra")) return;
+  if (timerRemaining() <= 0) {
+    if (timer.phase === "main" && timer.extraS > 0) {
+      timer.phase = "extra"; timer.endAt = Date.now() + timer.extraS * 1000; beep(2);
+    } else { timer.phase = "done"; beep(4); }
+    save(); render(); return;
+  }
+  const el = document.getElementById("timerDisplay");
+  if (el) el.textContent = fmtTime(timerRemaining());
+}
+setInterval(timerTick, 250);
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+function render() {
+  const r = state.rules;
+  const closedCount = state.stages.filter((s) => s.status === "closed").length;
+  document.getElementById("leagueTitle").textContent = r.name || "Lega";
+  document.title = `${r.name || "Lega"} — classifica`;
+  document.getElementById("headMeta").innerHTML =
+    `<div><b>${closedCount}</b> tappe chiuse su ${r.stagesPlanned} previste</div>` +
+    `<div>${state.players.length} giocatori in anagrafica</div>`;
+
+  document.querySelectorAll(".tab").forEach((b) => b.classList.toggle("active", b.dataset.tab === ui.tab));
+
+  const main = document.getElementById("main");
+  if (ui.tab === "overview") main.innerHTML = renderOverview();
+  else if (ui.tab === "stages") main.innerHTML = ui.stageId && stageById(ui.stageId) ? renderStage(stageById(ui.stageId)) : renderStageList();
+  else if (ui.tab === "players") main.innerHTML = renderPlayers();
+  else if (ui.tab === "final") main.innerHTML = renderFinal();
+  else main.innerHTML = renderRules();
+
+  main.innerHTML += ui.toast ? `<div class="toast" role="status">${esc(ui.toast)}</div>` : "";
+}
+
+/* Frase che riassume il regolamento in linguaggio semplice */
+function rulesSentence() {
+  const r = state.rules;
+  const how = r.scoring === "placement" ? "i punti assegnati per piazzamento" : "i punti fatti in ogni tappa";
+  const best = r.bestN > 0 ? `Contano i migliori ${r.bestN} risultati su ${r.stagesPlanned} tappe` : `Contano tutte le tappe`;
+  const pres = Number(r.presencePoints) > 0 ? `, più ${r.presencePoints} punt${Number(r.presencePoints) === 1 ? "o" : "i"} per ogni presenza` : "";
+  return `${best} (${how})${pres}. In finale vanno i primi ${r.finalists}, a eliminazione diretta al meglio di ${r.bestOf}.`;
+}
+
+function renderOverview() {
+  const r = state.rules;
+  const { rows, closed } = overall();
+  let h = `<h2 class="serif">Classifica generale</h2><p class="sub">${esc(rulesSentence())}</p>`;
+
+  if (!closed.length) {
+    h += `<div class="card pad">
+      <p>Nessuna tappa chiusa. La classifica generale si compone quando chiudi la prima tappa.</p>
+      <div class="actions">
+        <button class="btn" data-action="goNewStage">Crea la prima tappa</button>
+        ${state.players.length === 0 && state.stages.length === 0 ? `<button class="btn ghost" data-action="demo">Carica una lega di prova</button>` : ""}
+      </div></div>`;
+    return h + renderFooter();
+  }
+
+  // colonne: una per ogni tappa prevista (o di più, se ne hai giocate oltre il previsto)
+  const cols = Math.max(Number(r.stagesPlanned) || 0, ...state.stages.map((s) => s.number));
+  const stageByNumber = {};
+  closed.forEach((s) => { stageByNumber[s.number] = s; });
+  const cutoffTotal = rows.length >= r.finalists ? rows[r.finalists - 1].total : null;
+
+  h += `<div class="table-scroll"><table>
+    <thead><tr><th>#</th><th>Giocatore</th>`;
+  for (let i = 1; i <= cols; i++) h += `<th class="c">T${i}</th>`;
+  h += `<th class="r hide-sm">Presenze</th><th class="r">Totale</th></tr></thead><tbody>`;
+
+  rows.forEach((row, i) => {
+    const qualified = i < r.finalists;
+    if (i === r.finalists) {
+      h += `<tr class="cut-label"><td colspan="${cols + 4}">Linea della finale: sopra si qualificano i primi ${r.finalists}</td></tr>`;
+    }
+    h += `<tr class="${qualified ? "qualified" : ""}${i === r.finalists ? " cutline" : ""}">
+      <td class="num pos">${i + 1}</td>
+      <td><div class="pname">${esc(row.player.nick)}</div>
+        ${row.player.name ? `<div class="psub">${esc(row.player.name)}</div>` : ""}
+        ${!qualified && cutoffTotal !== null ? `<div class="gap">${cutoffTotal - row.total + 1} punti per entrare in finale</div>` : ""}
+      </td>`;
+    for (let n = 1; n <= cols; n++) {
+      const s = stageByNumber[n];
+      const res = s ? row.results.find((x) => x.stageId === s.id) : null;
+      if (!s) h += `<td class="c"><span class="chip absent" title="Tappa non ancora giocata">·</span></td>`;
+      else if (!res) h += `<td class="c"><span class="chip absent" title="Assente">–</span></td>`;
+      else {
+        const cls = row.counted.has(s.id) ? "counted" : "dropped";
+        const title = `${res.position}° posto · ${res.lp} punti ${cls === "counted" ? "conteggiati" : "scartati"}`;
+        h += `<td class="c"><span class="chip num ${cls}" title="${title}">${res.lp}</span></td>`;
+      }
+    }
+    h += `<td class="r num hide-sm">+${row.presence}</td>
+      <td class="r num total">${row.total}</td></tr>`;
+  });
+  h += `</tbody></table></div>
+    <div class="legend">
+      <span><span class="chip counted">9</span> conta per la generale</span>
+      <span><span class="chip dropped">3</span> scartato (fuori dai migliori ${r.bestN || "N"})</span>
+      <span><span class="chip absent">–</span> assente</span>
+    </div>
+    <p class="hint" style="margin-top:14px">A parità di totale: miglior risultato singolo, poi più presenze.</p>`;
+  return h + renderFooter();
+}
+
+function renderStageList() {
+  let h = `<h2 class="serif">Tappe</h2>
+    <p class="sub">Ogni tappa è un torneo a turni svizzeri. Se l'hai gestita con un altro strumento, puoi riportare solo i risultati finali.</p>
+    <div class="actions" style="margin-top:0;margin-bottom:20px"><button class="btn" data-action="newStage">Nuova tappa</button></div>`;
+  if (!state.stages.length) return h + `<p class="empty">Nessuna tappa creata.</p>` + renderFooter();
+
+  [...state.stages].sort((a, b) => b.number - a.number).forEach((s) => {
+    const standing = s.result || (s.playerIds.length ? stageStanding(s) : []);
+    const winner = s.status === "closed" && standing.length ? nickOf(standing[0].pid) : null;
+    const detail = s.mode === "manual" ? "risultati manuali" : `${s.rounds.length} turni`;
+    h += `<button class="card stage-row" data-action="openStage" data-id="${s.id}">
+      <div><div class="pname">Tappa ${s.number} <span class="psub">· ${fmtDate(s.date)}</span></div>
+        <div class="psub">${s.playerIds.length} giocatori · ${detail}${winner ? ` · vince ${esc(winner)}` : ""}</div></div>
+      <span class="badge ${s.status}">${s.status === "closed" ? "Chiusa" : "In corso"}</span>
+    </button>`;
+  });
+  return h + renderFooter();
+}
+
+function renderStage(s) {
+  const r = state.rules;
+  const locked = s.status === "closed";
+  let h = `<button class="link" data-action="backStages">‹ Tutte le tappe</button>
+    <div class="row" style="justify-content:space-between;margin-top:12px">
+      <h2 class="serif">Tappa ${s.number}</h2>
+      <span class="badge ${s.status}">${locked ? "Chiusa: conta per la generale" : "In corso: non ancora in generale"}</span>
+    </div>
+    <div class="grid" style="margin-top:16px">
+      <label class="field">Data
+        <input type="date" data-field="stage.date" value="${esc(s.date)}" ${locked ? "disabled" : ""}></label>
+      <label class="field">Gestione
+        <select data-field="stage.mode" ${locked || s.rounds.length ? "disabled" : ""}>
+          <option value="swiss" ${s.mode === "swiss" ? "selected" : ""}>Turni svizzeri qui</option>
+          <option value="manual" ${s.mode === "manual" ? "selected" : ""}>Riporto solo i risultati</option>
+        </select></label>
+    </div>`;
+
+  // --- iscrizioni ---
+  const canEditPlayers = !locked && (s.mode === "manual" || s.rounds.length === 0);
+  h += `<div class="section"><h3 class="serif">Partecipanti (${s.playerIds.length})</h3>`;
+  if (canEditPlayers) {
+    h += `<p class="hint">Spunta chi gioca. Se manca qualcuno, aggiungilo qui: entra anche nell'anagrafica della lega.</p>
+      <div class="row" style="margin-top:12px">
+        <input id="qa-nick" placeholder="Nickname" style="max-width:220px">
+        <input id="qa-name" placeholder="Nome (facoltativo)" style="max-width:220px">
+        <button class="btn small" data-action="quickAdd">Aggiungi e iscrivi</button>
+      </div>`;
+    if (state.players.length) {
+      h += `<div class="check-list">` + [...state.players].sort((a, b) => a.nick.localeCompare(b.nick)).map((p) => {
+        const on = s.playerIds.includes(p.id);
+        return `<label class="${on ? "on" : ""}"><input type="checkbox" data-action="togglePlayer" data-id="${p.id}" ${on ? "checked" : ""}>
+          ${esc(p.nick)}</label>`;
+      }).join("") + `</div>`;
+    }
+  } else {
+    h += `<p class="hint">${s.playerIds.map(nickOf).map(esc).join(", ") || "Nessuno"}</p>`;
+  }
+  h += `</div>`;
+
+  // --- svolgimento ---
+  if (s.mode === "swiss") h += renderSwiss(s, locked);
+  else h += renderManual(s, locked);
+
+  // --- classifica della tappa ---
+  if (s.playerIds.length) {
+    const standing = s.result || stageStanding(s);
+    const st = s.mode === "swiss" ? swissStats(s) : null;
+    h += `<div class="section"><h3 class="serif">Classifica di tappa</h3>
+      <div class="table-scroll"><table><thead><tr><th>#</th><th>Giocatore</th><th class="r">Punti tappa</th>
+      ${st ? `<th class="r hide-sm">V-P</th><th class="r hide-sm">OP%</th><th class="r hide-sm">OP2%</th>` : ""}
+      <th class="r">Punti lega</th></tr></thead><tbody>`;
+    standing.forEach((e) => {
+      const x = st ? st[e.pid] : null;
+      h += `<tr><td class="num pos">${e.position}</td><td class="pname">${esc(nickOf(e.pid))}</td>
+        <td class="r num">${e.points}</td>
+        ${x ? `<td class="r num hide-sm">${x.wins}-${x.losses}</td>
+          <td class="r num hide-sm">${x.op.toFixed(2)}</td><td class="r num hide-sm">${x.op2.toFixed(2)}</td>` : ""}
+        <td class="r num total">${leaguePoints(e)}</td></tr>`;
+    });
+    h += `</tbody></table></div></div>`;
+  }
+
+  // --- chiusura ---
+  h += `<div class="actions" style="margin-top:28px">`;
+  if (!locked) {
+    const ready = s.playerIds.length > 0 && (s.mode === "manual" || (s.rounds.length > 0 && roundComplete(s)));
+    h += `<button class="btn" data-action="closeStage" ${ready ? "" : "disabled"}>Chiudi la tappa e aggiorna la generale</button>`;
+    if (!ready) h += `<span class="hint">${s.mode === "swiss" ? "Gioca almeno un turno e inserisci tutti i risultati." : "Iscrivi i partecipanti e inserisci i punti."}</span>`;
+    h += `<button class="btn ghost small" data-action="deleteStage">Elimina tappa</button>`;
+  } else {
+    h += `<button class="btn ghost" data-action="reopenStage">Riapri per correggere</button>`;
+  }
+  return h + `</div>`;
+}
+
+function renderSwiss(s, locked) {
+  const r = state.rules;
+  let h = `<div class="section"><h3 class="serif">Turni</h3>`;
+  if (s.playerIds.length < 2) return h + `<p class="empty">Iscrivi almeno 2 giocatori per generare il primo turno.</p></div>`;
+  const sugg = suggestedRounds(s.playerIds.length);
+  h += `<p class="hint">Con ${s.playerIds.length} giocatori sono consigliati ${sugg} turni. Un secondo clic sul vincitore annulla il risultato.</p>`;
+
+  s.rounds.forEach((round, ri) => {
+    const isCurrent = ri === s.rounds.length - 1 && !locked;
+    h += `<div class="round" style="margin-top:16px"><div class="round-head">
+      <h3 class="serif" style="margin:0;color:${isCurrent ? "var(--parchment)" : "var(--muted)"}">Turno ${round.number}</h3></div>`;
+    if (isCurrent) h += renderTimer(s.id, s.rounds.length, r.roundMinutes, r.extraMinutes);
+    round.matches.forEach((m, mi) => {
+      const dis = locked ? "disabled" : "";
+      h += `<div class="card match"><span class="tblno num">Tavolo ${mi + 1}</span>
+        <button class="wbtn${m.result === "A" ? " sel" : ""}" data-action="setResult" data-ri="${ri}" data-mi="${mi}" data-w="A" ${dis}>
+          ${m.result === "A" ? "✓ " : ""}${esc(nickOf(m.a))}</button>
+        <button class="wbtn${m.result === "B" ? " sel" : ""}" data-action="setResult" data-ri="${ri}" data-mi="${mi}" data-w="B" ${dis}>
+          ${m.result === "B" ? "✓ " : ""}${esc(nickOf(m.b))}</button>
+      </div>`;
+    });
+    if (round.bye) h += `<div class="bye-box">Bye: ${esc(nickOf(round.bye))} riceve ${r.byePts} punti.</div>`;
+    h += `</div>`;
+  });
+
+  if (!locked) {
+    const complete = roundComplete(s);
+    h += `<div class="actions">
+      <button class="btn" data-action="newRound" ${complete ? "" : "disabled"}>Genera il turno ${s.rounds.length + 1}</button>
+      ${complete ? "" : `<span class="hint">Inserisci tutti i risultati del turno corrente.</span>`}
+      ${s.rounds.length ? `<button class="btn ghost small" data-action="undoRound">Annulla ultimo turno</button>` : ""}
+    </div>`;
+  }
+  return h + `</div>`;
+}
+
+function renderManual(s, locked) {
+  let h = `<div class="section"><h3 class="serif">Risultati della tappa</h3>
+    <p class="hint">Inserisci i punti finali di ciascuno. La posizione è facoltativa: se la lasci vuota ordino per punti.</p>`;
+  if (!s.playerIds.length) return h + `<p class="empty">Iscrivi prima i partecipanti.</p></div>`;
+  h += `<div class="card" style="margin-top:12px"><div class="manual-row hint"><span>Giocatore</span><span>Punti</span><span>Posizione</span></div>`;
+  s.playerIds.forEach((pid) => {
+    const v = s.manual[pid] || {};
+    h += `<div class="manual-row"><span class="pname">${esc(nickOf(pid))}</span>
+      <input type="number" min="0" inputmode="numeric" data-field="manual.points" data-id="${pid}" value="${v.points ?? ""}" ${locked ? "disabled" : ""}>
+      <input type="number" min="1" inputmode="numeric" data-field="manual.position" data-id="${pid}" value="${v.position ?? ""}" ${locked ? "disabled" : ""}>
+    </div>`;
+  });
+  return h + `</div></div>`;
+}
+
+/* key: id tappa o "final" · round: numero del turno · minutes/extra: durate in minuti */
+function renderTimer(key, round, minutes, extra) {
+  const own = timer.key === key && timer.round === round;
+  const phase = own ? timer.phase : "idle";
+  const labels = {
+    idle: `Tempo di turno: ${minutes} minuti`,
+    main: timer.paused ? "Tempo di turno, in pausa" : "Tempo di turno",
+    extra: timer.paused ? "Supplementare, in pausa" : `Supplementare: ${extra} minuti`,
+    done: "Tempo scaduto",
+  };
+  let btns;
+  if (phase === "idle") btns = `<button class="btn" data-action="timerStart" data-key="${key}" data-round="${round}" data-min="${minutes}" data-extra="${extra}">Avvia timer</button>`;
+  else if (phase === "done") btns = `<button class="btn ghost small" data-action="timerReset">Azzera timer</button>`;
+  else btns = (timer.paused
+      ? `<button class="btn small" data-action="timerResume">Riprendi</button>`
+      : `<button class="btn ghost small" data-action="timerPause">Pausa</button>`) +
+    ` <button class="btn ghost small" data-action="timerReset">Azzera</button>`;
+  const shown = phase === "done" ? "00:00" : (own ? fmtTime(timerRemaining()) : fmtTime((Number(minutes) || 0) * 60));
+  return `<div class="timer-box ${phase}">
+    <div><span class="num timer-display" ${own ? 'id="timerDisplay"' : ""}>${shown}</span><span class="timer-label">${labels[phase]}</span></div>
+    <div class="row">${btns}</div></div>`;
+}
+
+/* Un incontro del tabellone con i bottoni dei risultati possibili */
+function renderBracketMatch(m, ri, mi, isBye) {
+  const f = state.final;
+  const live = m.a && m.b && !m.winner;
+  const line = (pid, games) => {
+    if (!pid) return `<div class="bplayer tbd"><span>${isBye ? "bye" : "da definire"}</span></div>`;
+    const cls = m.winner ? (m.winner === pid ? "win" : "lose") : "";
+    return `<div class="bplayer ${cls}"><span><span class="seed num">${seedOf(pid)}</span>${esc(nickOf(pid))}</span>
+      ${m.a && m.b ? `<span class="num bscore">${games}</span>` : ""}</div>`;
+  };
+  let h = `<div class="card bmatch${live ? " live" : ""}">${line(m.a, m.ga)}${line(m.b, m.gb)}`;
+  if (m.a && m.b) {
+    // tutti i risultati possibili al meglio di N: es. al meglio di 3 → 2-0, 2-1, 1-2, 0-2
+    const need = Math.ceil(f.bestOf / 2);
+    const opts = [];
+    for (let l = 0; l < need; l++) opts.push([need, l]);
+    for (let l = need - 1; l >= 0; l--) opts.push([l, need]);
+    h += `<div class="bopts">` + opts.map(([ga, gb]) => {
+      const sel = m.ga === ga && m.gb === gb;
+      const who = ga > gb ? nickOf(m.a) : nickOf(m.b);
+      return `<button class="dbtn${sel ? " sel" : ""}" data-action="finalScore" data-ri="${ri}" data-mi="${mi}" data-ga="${ga}" data-gb="${gb}"
+        title="Vince ${esc(who)} ${Math.max(ga, gb)}–${Math.min(ga, gb)}">${ga}–${gb}</button>`;
+    }).join("") + `</div>`;
+  }
+  return h + `</div>`;
+}
+
+function renderFinal() {
+  const r = state.rules;
+  const f = state.final;
+  const { rows, closed } = overall();
+  const missing = Math.max(0, (Number(r.stagesPlanned) || 0) - closed.length);
+  let h = `<h2 class="serif">Finale</h2>
+    <p class="sub">Giornata a parte a eliminazione diretta tra i primi ${r.finalists} della generale, al meglio di ${r.bestOf}. Il tabellone è quello classico: il 1° incontra l'8°, il 2° il 7° e così via, con 1° e 2° su lati opposti.${r.thirdPlace ? " I perdenti delle semifinali giocano la finalina per il 3° posto." : ""}</p>`;
+
+  if (!f) {
+    const k = Math.min(Number(r.finalists) || 8, rows.length);
+    h += `<div class="card pad">
+      <p>Il tabellone si genera dalla classifica generale e da quel momento resta fisso, anche se poi correggi una tappa.</p>
+      ${missing ? `<p class="hint" style="margin-top:8px">Attenzione: mancano ancora ${missing} tappe su ${r.stagesPlanned}. Di solito si genera dopo l'ultima.</p>` : ""}
+      ${rows.length > k && rows[k - 1].total === rows[k].total ? `<p class="hint" style="margin-top:8px">Il ${k}° e il ${k + 1}° sono a pari punti: entra chi ha il miglior risultato singolo, poi più presenze. Controlla che la regola sia quella del vostro regolamento.</p>` : ""}
+      <div class="actions"><button class="btn" data-action="createFinal" ${k >= 2 ? "" : "disabled"}>Genera il tabellone con i primi ${k}</button></div>
+    </div>`;
+    return h + renderFooter();
+  }
+
+  const last = f.rounds[f.rounds.length - 1][0];
+  if (last.winner) {
+    const second = last.winner === last.a ? last.b : last.a;
+    h += `<div class="champion"><div class="hint">Vincitore della lega</div>
+      <div class="serif">${esc(nickOf(last.winner))}</div>
+      <div class="hint">batte ${esc(nickOf(second))} ${Math.max(last.ga, last.gb)}–${Math.min(last.ga, last.gb)} in finale.
+        2° ${esc(nickOf(second))}${f.third && f.third.winner ? `, 3° ${esc(nickOf(f.third.winner))}` : f.third ? ", 3° posto ancora da giocare" : ""}.</div></div>`;
+  }
+
+  // timer per il turno in corso: il primo turno che ha incontri ancora aperti
+  let liveRound = f.rounds.findIndex((rd) => rd.some((m) => m.a && m.b && !m.winner));
+  if (liveRound < 0 && f.third && f.third.a && f.third.b && !f.third.winner) liveRound = f.rounds.length - 1;
+  if (liveRound >= 0) {
+    h += `<h3 class="serif">${roundName(liveRound, f.rounds.length)} in corso</h3>` +
+      renderTimer("final", liveRound + 1, r.finalRoundMinutes, r.extraMinutes);
+  }
+
+  h += `<div class="bracket">`;
+  f.rounds.forEach((round, ri) => {
+    h += `<div class="bcol"><h3 class="serif">${roundName(ri, f.rounds.length)}</h3>`;
+    round.forEach((m, mi) => {
+      h += renderBracketMatch(m, ri, mi, ri === 0 && (!m.a || !m.b));
+      if (f.third && ri === f.rounds.length - 1) {
+        h += `<h3 class="serif" style="margin-top:6px">Finale 3° posto</h3>` + renderBracketMatch(f.third, "third", 0, false);
+      }
+    });
+    h += `</div>`;
+  });
+  h += `</div>
+    <p class="hint" style="margin-top:12px">I punteggi sono dal punto di vista del giocatore in alto. Un secondo clic sullo stesso risultato lo annulla.</p>`;
+
+  h += ui.confirmFinalDelete
+    ? `<div class="actions"><span class="danger-text">Eliminare il tabellone e i risultati della finale?</span>
+        <button class="btn small" data-action="deleteFinal">Sì, elimina</button>
+        <button class="btn ghost small" data-action="cancelFinalDelete">Annulla</button></div>`
+    : `<div class="actions"><button class="btn ghost small" data-action="askFinalDelete">Elimina e rigenera il tabellone</button></div>`;
+  return h + renderFooter();
+}
+
+function renderPlayers() {
+  let h = `<h2 class="serif">Giocatori</h2>
+    <p class="sub">Un'unica anagrafica per tutta la lega. Se lo stesso giocatore è stato inserito due volte con nick diversi, uniscili: i risultati passano al profilo che tieni.</p>
+    <div class="card pad row">
+      <input id="np-nick" placeholder="Nickname" style="max-width:240px">
+      <input id="np-name" placeholder="Nome e cognome (facoltativo)" style="max-width:280px">
+      <button class="btn" data-action="addPlayer">Aggiungi giocatore</button>
+    </div>`;
+
+  if (!state.players.length) return h + `<p class="empty" style="margin-top:16px">Nessun giocatore. Aggiungili qui o direttamente dalla tappa.</p>` + renderFooter();
+
+  h += `<div class="table-scroll" style="margin-top:20px"><table><thead><tr>
+    <th>Nickname</th><th>Nome</th><th class="r">Tappe</th><th></th></tr></thead><tbody>`;
+  [...state.players].sort((a, b) => a.nick.localeCompare(b.nick)).forEach((p) => {
+    const n = playerStageCount(p.id);
+    h += `<tr><td><input data-field="player.nick" data-id="${p.id}" value="${esc(p.nick)}" aria-label="Nickname"></td>
+      <td><input data-field="player.name" data-id="${p.id}" value="${esc(p.name)}" placeholder="—" aria-label="Nome"></td>
+      <td class="r num">${n}</td>
+      <td class="r">${n === 0 ? `<button class="btn ghost small" data-action="deletePlayer" data-id="${p.id}">Rimuovi</button>` : ""}</td></tr>`;
+  });
+  h += `</tbody></table></div>`;
+
+  const opts = (sel) => `<option value="">Scegli…</option>` + [...state.players].sort((a, b) => a.nick.localeCompare(b.nick))
+    .map((p) => `<option value="${p.id}" ${sel === p.id ? "selected" : ""}>${esc(p.nick)}</option>`).join("");
+  h += `<div class="section"><h3 class="serif">Unisci due profili</h3>
+    <div class="card pad grid">
+      <label class="field">Profilo da eliminare<select data-field="ui.mergeFrom">${opts(ui.mergeFrom)}</select></label>
+      <label class="field">Profilo da tenere<select data-field="ui.mergeInto">${opts(ui.mergeInto)}</select></label>
+      <div style="display:flex;align-items:flex-end"><button class="btn" data-action="merge"
+        ${ui.mergeFrom && ui.mergeInto && ui.mergeFrom !== ui.mergeInto ? "" : "disabled"}>Unisci</button></div>
+    </div></div>`;
+  return h + renderFooter();
+}
+
+function renderRules() {
+  const r = state.rules;
+  const f = (key, label, type = "number", extra = "") =>
+    `<label class="field">${label}<input type="${type}" data-field="rules.${key}" value="${esc(r[key])}" ${extra}></label>`;
+  let h = `<h2 class="serif">Regolamento</h2>
+    <p class="sub">${esc(rulesSentence())} Le modifiche si applicano subito a tutta la classifica generale, anche alle tappe già chiuse.</p>
+    <div class="card pad grid">
+      ${f("name", "Nome della lega", "text")}
+      ${f("stagesPlanned", "Tappe previste", "number", 'min="1"')}
+      ${f("bestN", "Tappe che contano (0 = tutte)", "number", 'min="0"')}
+      ${f("presencePoints", "Punti per presenza", "number", 'min="0"')}
+      ${f("finalists", "Qualificati alla finale", "number", 'min="1"')}
+    </div>
+    <div class="section"><h3 class="serif">Punti lega di ogni tappa</h3>
+    <div class="card pad grid">
+      <label class="field">Calcolo
+        <select data-field="rules.scoring">
+          <option value="points" ${r.scoring === "points" ? "selected" : ""}>Punti fatti nella tappa</option>
+          <option value="placement" ${r.scoring === "placement" ? "selected" : ""}>Tabella per piazzamento</option>
+        </select></label>
+      ${r.scoring === "placement" ? f("placementTable", "Punti dal 1° in giù, separati da virgola", "text") : ""}
+    </div></div>
+    <div class="section"><h3 class="serif">Tappe a turni svizzeri</h3>
+    <div class="card pad grid">
+      ${f("winPts", "Punti vittoria")}
+      ${f("byePts", "Punti bye")}
+      ${f("roundMinutes", "Minuti per turno", "number", 'min="1"')}
+      ${f("extraMinutes", "Minuti supplementari", "number", 'min="0"')}
+    </div></div>
+    <div class="section"><h3 class="serif">Finale</h3>
+    <div class="card pad grid">
+      <label class="field">Incontri
+        <select data-field="rules.bestOf">
+          ${[1, 3, 5].map((n) => `<option value="${n}" ${Number(r.bestOf) === n ? "selected" : ""}>Al meglio di ${n}</option>`).join("")}
+        </select></label>
+      ${f("finalRoundMinutes", "Minuti per turno di finale", "number", 'min="1"')}
+      <label class="field" style="flex-direction:row;align-items:center;gap:10px;margin-top:22px">
+        <input type="checkbox" data-field="rules.thirdPlace" ${r.thirdPlace ? "checked" : ""}> Finalina per il 3° posto</label>
+    </div>
+    <p class="hint" style="margin-top:8px">Il numero di qualificati si imposta in alto. Il formato si applica ai tabelloni generati da qui in poi.</p></div>
+    <div class="section"><h3 class="serif">Dati</h3>
+      <p class="hint">I dati restano in questo browser. Esporta un backup dopo ogni tappa, e importalo per spostare la lega su un altro computer.</p>
+      <div class="actions">
+        <button class="btn ghost" data-action="export">Esporta backup</button>
+        <button class="btn ghost" data-action="import">Importa backup</button>
+      </div></div>`;
+  return h + renderFooter();
+}
+
+function renderFooter() {
+  if (!ui.confirmReset) return `<div class="footer"><button class="btn ghost small" data-action="askReset">Nuova lega (cancella tutto)</button></div>`;
+  return `<div class="footer"><span class="danger-text">Cancellare giocatori, tappe e classifica?</span>
+    <button class="btn small" data-action="resetAll">Sì, cancella</button>
+    <button class="btn ghost small" data-action="cancelReset">Annulla</button></div>`;
+}
+
+/* ============================================================
+   EVENTI (delega: un solo listener per clic e uno per modifiche)
+   ============================================================ */
+document.addEventListener("click", (ev) => {
+  const tab = ev.target.closest(".tab");
+  if (tab) { ui.tab = tab.dataset.tab; ui.stageId = null; ui.confirmReset = false; render(); return; }
+
+  const el = ev.target.closest("[data-action]");
+  if (!el || el.disabled) return;
+  const a = el.dataset.action;
+  const s = ui.stageId ? stageById(ui.stageId) : null;
+
+  switch (a) {
+    case "demo": loadDemo(); break;
+    case "goNewStage": ui.tab = "stages"; // poi crea come "newStage"
+    case "newStage": { const ns = newStage(); state.stages.push(ns); ui.stageId = ns.id; save(); break; }
+    case "openStage": ui.stageId = el.dataset.id; break;
+    case "backStages": ui.stageId = null; break;
+    case "togglePlayer": {
+      const pid = el.dataset.id;
+      if (s.playerIds.includes(pid)) { s.playerIds = s.playerIds.filter((x) => x !== pid); delete s.manual[pid]; }
+      else { s.playerIds.push(pid); s.seeds[pid] = Math.random(); }
+      save(); break;
+    }
+    case "quickAdd": {
+      const p = addPlayer(document.getElementById("qa-nick").value, document.getElementById("qa-name").value);
+      if (p && !s.playerIds.includes(p.id)) { s.playerIds.push(p.id); s.seeds[p.id] = Math.random(); }
+      save(); render();
+      const f = document.getElementById("qa-nick"); if (f) f.focus();
+      return;
+    }
+    case "newRound":
+      if (s.playerIds.length >= 2 && roundComplete(s)) { s.rounds.push(generateRound(s)); timerReset(false); save(); }
+      break;
+    case "undoRound": s.rounds.pop(); timerReset(false); save(); break;
+    case "setResult": {
+      const m = s.rounds[+el.dataset.ri].matches[+el.dataset.mi];
+      m.result = m.result === el.dataset.w ? null : el.dataset.w;
+      save(); break;
+    }
+    case "closeStage": closeStage(s); toast(`Tappa ${s.number} chiusa: classifica generale aggiornata`); return;
+    case "reopenStage": reopenStage(s); break;
+    case "deleteStage":
+      state.stages = state.stages.filter((x) => x.id !== s.id);
+      state.stages.sort((x, y) => x.number - y.number).forEach((x, i) => { x.number = i + 1; });
+      ui.stageId = null; save(); break;
+    case "timerStart": timerStart(el.dataset.key, +el.dataset.round, el.dataset.min, el.dataset.extra); break;
+    case "timerPause": timerPause(); break;
+    case "timerResume": timerResume(); break;
+    case "timerReset": timerReset(); break;
+    case "addPlayer": {
+      addPlayer(document.getElementById("np-nick").value, document.getElementById("np-name").value);
+      save(); render();
+      const f = document.getElementById("np-nick"); if (f) f.focus();
+      return;
+    }
+    case "deletePlayer": state.players = state.players.filter((p) => p.id !== el.dataset.id); save(); break;
+    case "merge": mergePlayers(ui.mergeFrom, ui.mergeInto); return;
+    case "createFinal": createFinal(); break;
+    case "finalScore": {
+      const m = finalMatch(el.dataset.ri, el.dataset.mi);
+      const ga = +el.dataset.ga, gb = +el.dataset.gb;
+      if (m.ga === ga && m.gb === gb) { m.ga = 0; m.gb = 0; } else { m.ga = ga; m.gb = gb; }
+      refreshBracket(); save(); break;
+    }
+    case "askFinalDelete": ui.confirmFinalDelete = true; break;
+    case "cancelFinalDelete": ui.confirmFinalDelete = false; break;
+    case "deleteFinal": state.final = null; ui.confirmFinalDelete = false; if (timer.key === "final") timerReset(false); save(); break;
+    case "export": exportData(); return;
+    case "import": document.getElementById("importFile").click(); return;
+    case "askReset": ui.confirmReset = true; break;
+    case "cancelReset": ui.confirmReset = false; break;
+    case "resetAll": resetAll(); break;
+  }
+  render();
+});
+
+/* Le modifiche ai campi si salvano quando lasci il campo (evento change) */
+document.addEventListener("change", (ev) => {
+  const el = ev.target;
+  if (el.id === "importFile") { if (el.files[0]) importData(el.files[0]); el.value = ""; return; }
+  const field = el.dataset.field;
+  if (!field) return;
+  const s = ui.stageId ? stageById(ui.stageId) : null;
+  const [scope, key] = field.split(".");
+
+  if (scope === "rules") {
+    if (el.type === "checkbox") state.rules[key] = el.checked;
+    else if (el.type === "number") state.rules[key] = Math.max(0, Number(el.value) || 0);
+    else state.rules[key] = el.tagName === "SELECT" && key === "bestOf" ? Number(el.value) : el.value;
+  } else if (scope === "stage") {
+    s[key] = el.value;
+  } else if (scope === "manual") {
+    const pid = el.dataset.id;
+    s.manual[pid] = s.manual[pid] || {};
+    s.manual[pid][key] = el.value === "" ? null : Number(el.value);
+  } else if (scope === "player") {
+    const p = playerById(el.dataset.id);
+    const v = el.value.trim();
+    if (key === "nick" && !v) { render(); return; } // il nickname non può restare vuoto
+    p[key] = v;
+  } else if (scope === "ui") {
+    ui[key] = el.value;
+  }
+  save(); render();
+});
+
+/* Invio nei campi di aggiunta rapida */
+document.addEventListener("keydown", (ev) => {
+  if (ev.key !== "Enter") return;
+  if (ev.target.id === "qa-nick" || ev.target.id === "qa-name") document.querySelector('[data-action="quickAdd"]').click();
+  if (ev.target.id === "np-nick" || ev.target.id === "np-name") document.querySelector('[data-action="addPlayer"]').click();
+});
+
+load();
+render();
+</script>
+</body>
+</html>
